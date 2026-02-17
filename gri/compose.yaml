@@ -1,13 +1,10 @@
 services:
   gri:
     hostname: gri
-    build:
-      context: .
-    image: gri:local
+    image: ghcr.io/yudejp/gri:master
     container_name: gri
     restart: always
     environment:
-      - RUBYOPT=-r/usr/local/gri/patches/ltsv_frozen_fix
       - TZ=Asia/Tokyo
     ports:
       - "9292:9292"
@@ -24,6 +21,7 @@ services:
       - "SHINTRANET-IX2215.shinanomai.xyz:172.16.0.254"
       - "hnd2sh1.tun.y2e.org:100.76.111.80"
       - "wabi1750ps.nja1.sgchsgch.net:100.113.233.68"
+      - "DCPJ925N.ttj1.yude.jp:100.104.62.51"
     command:
       - sh
       - -lc
