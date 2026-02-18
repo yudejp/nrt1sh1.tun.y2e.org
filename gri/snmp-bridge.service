@@ -1,11 +1,11 @@
 [Unit]
-Description=SNMP UDP Proxy via socat (1161 -> 192.168.0.13:161)
+Description=
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/socat UDP4-LISTEN:11610,fork UDP4:192.168.0.13:161
+ExecStart=/usr/bin/socat UDP4-LISTEN:11610,fork UDP4:192.168.0.1:161
 Restart=always
 RestartSec=2
 User=root

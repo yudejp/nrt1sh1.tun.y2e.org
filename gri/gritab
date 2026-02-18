@@ -4,14 +4,14 @@ ttj1gw1.tun.y2e.org ver=2c  community=public
 nrt1sh1.tun.y2e.org ver=2c  community=public
 hnd1sh1.tun.y2e.org ver=2c  community=public
 toy1sh1.tail5b1c5.ts.net ver=2c  community=public
-ibr1gw1.tun.y2e.org ver=1  community=public
+ibr1gw1.ibr1.yude.jp ver=1  community=public   port=11612
 ibr1sh1.tail5b1c5.ts.net ver=2c  community=public
 hnd3sh1.tail5b1c5.ts.net ver=2c  community=public
 ttj1sh1.tail5b1c5.ts.net ver=2c  community=public
 nrt1wbr1.nrt1.yude.jp ver=2c  community=public
 nrt1wat1.nrt1.yude.jp ver=2c  community=public
-ibr1gw2.ibr1.yude.jp ver=2c  community=public
-ibr1gw3.ibr1.yude.jp ver=2c  community=public
+router1.pepepper.net ver=2c  community=public   port=11613
+router2.pepepper.net ver=2c  community=public   port=11614
 nrt1csh1.tun.y2e.org ver=2c  community=public
 ttj3cam1.tail5b1c5.ts.net ver=2c  community=public
 nrt1kwo4.tail5b1c5.ts.net ver=2c  community=public
@@ -23,7 +23,7 @@ hnd1con1.tail5b1c5.ts.net ver=2c  community=public
 izo1sh1.tail5b1c5.ts.net ver=2c  community=public
 nrt1kwo1.tail5b1c5.ts.net ver=2c  community=public
 berry.tun.y2e.org ver=2c  community=public
-mf720c.ibr1.yude.jp ver=2c  community=public
+mf720c.pepepper.net ver=2c  community=public   port=11611
 nrt1kwo2.tail5b1c5.ts.net ver=2c  community=public
 nrt1kwo3.tail5b1c5.ts.net ver=2c  community=public
 beer.tail5b1c5.ts.net ver=2c  community=public
@@ -33,7 +33,7 @@ melon.tail5b1c5.ts.net ver=2c  community=public
 maple.tail5b1c5.ts.net ver=2c  community=public
 nrt1pdm1.tail5b1c5.ts.net ver=2c  community=public
 nja1sh1.tail5b1c5.ts.net ver=2c  community=public
-gateway.local.kusaremkn.com ver=2c  community=public
+gateway.local.kusaremkn.com ver=2c  community=public   port=11610
 SHINTRANET-IX2215.shinanomai.xyz ver=2c  community=public
 hnd2sh1.tun.y2e.org ver=2c  community=public
 wabi1750ps.nja1.sgchsgch.net ver=2c  community=public   port=11610
