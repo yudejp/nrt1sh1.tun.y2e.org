@@ -23,6 +23,9 @@ services:
       - "hnd2sh1.tun.y2e.org:100.76.111.80"
       - "wabi1750ps.nja1.sgchsgch.net:100.113.233.68"
       - "DCPJ925N.ttj1.yude.jp:100.104.62.51"
+      - "printer.local.kusaremkn.com:100.109.169.61"
+      - "hp-envy.home.yuriko.co.nz:100.70.127.76"
+      - "Cisco867VAE.home.yuriko.co.nz:100.70.127.76"
     command:
       - sh
       - -lc
