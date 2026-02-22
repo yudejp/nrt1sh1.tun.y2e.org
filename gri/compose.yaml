@@ -26,6 +26,7 @@ services:
       - "printer.local.kusaremkn.com:100.109.169.61"
       - "hp-envy.home.yuriko.co.nz:100.70.127.76"
       - "Cisco867VAE.home.yuriko.co.nz:100.70.127.76"
+      - "sdj1gw1.sdj1.yude.jp:100.71.26.108"
     command:
       - sh
       - -lc
