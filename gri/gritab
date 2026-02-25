@@ -41,9 +41,11 @@ SHINTRANET-IX2215.shinanomai.xyz ver=2c  community=public
 hnd2sh1.tun.y2e.org ver=2c  community=public
 wabi1750ps.nja1.sgchsgch.net ver=2c  community=public   port=11610
 DCPJ925N.ttj1.yude.jp ver=2c  community=public   port=11610
-hp-envy.home.yuriko.co.nz ver=2c  community=public   port=11610
-Cisco867VAE.home.yuriko.co.nz ver=2c  community=public   port=11611
 sdj1gw1.sdj1.yude.jp ver=2c  community=yude   port=11610
 nrt1con3.tail5b1c5.ts.net ver=2c  community=public
 nrt1con2.tail5b1c5.ts.net ver=2c  community=public
 nrt1con4.tail5b1c5.ts.net ver=2c  community=public
+hnd1pe1.tun.y2e.org ver=2c  community=public
+ibr1pe1.tun.y2e.org ver=2c  community=public
+kix1sh1.tail5b1c5.ts.net ver=2c  community=public
+kix1sh2.tail5b1c5.ts.net ver=2c  community=public
