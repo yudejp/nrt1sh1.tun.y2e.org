@@ -20,7 +20,6 @@ services:
       - "gateway.local.kusaremkn.com:100.109.169.61"
       - "mf720c.pepepper.net:100.93.170.11"
       - "SHINTRANET-IX2215.shinanomai.xyz:100.86.190.92"
-      - "hnd2sh1.tun.y2e.org:100.76.111.80"
       - "wabi1750ps.internal.sgchsgch.net:100.113.233.68"
       - "raritan.internal.sgchsgch.net:100.113.233.68"
       - "DCPJ925N.ttj1.yude.jp:100.104.62.51"

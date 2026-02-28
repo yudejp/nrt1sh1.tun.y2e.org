@@ -8,7 +8,7 @@ ibr1gw1.ibr1.yude.jp ver=1  community=public   port=11612
 ibr1sh1.tail5b1c5.ts.net ver=2c  community=public
 hnd3sh1.tail5b1c5.ts.net ver=2c  community=public
 ttj1sh1.tail5b1c5.ts.net ver=2c  community=public
-nrt1wbr1.nrt1.yude.jp ver=2c  community=public
+nrt1wbr1.tun.y2e.org ver=2c  community=public
 nrt1wat1.nrt1.yude.jp ver=2c  community=public
 router1.pepepper.net ver=2c  community=public   port=11613
 router2.pepepper.net ver=2c  community=public   port=11614
