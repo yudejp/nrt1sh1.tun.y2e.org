@@ -8,6 +8,7 @@ services:
       - TZ=Asia/Tokyo
     ports:
       - "9292:9292"
+      - "9293:9293"
     user: root
     volumes:
       - ./gritab:/usr/local/gri/gritab:ro
