@@ -39,7 +39,8 @@ gateway.local.kusaremkn.com ver=2c  community=public   port=11610
 printer.local.kusaremkn.com ver=2c  community=public   port=11611
 SHINTRANET-IX2215.shinanomai.xyz ver=2c  community=public
 hnd2sh1.tun.y2e.org ver=2c  community=public
-wabi1750ps.nja1.sgchsgch.net ver=2c  community=public   port=11610
+wabi1750ps.internal.sgchsgch.net ver=2c  community=public   port=11610
+raritan.internal.sgchsgch.net ver=2c  community=public   port=11611
 DCPJ925N.ttj1.yude.jp ver=2c  community=public   port=11610
 sdj1gw1.sdj1.yude.jp ver=2c  community=yude   port=11610
 nrt1con3.tail5b1c5.ts.net ver=2c  community=public
@@ -49,3 +50,5 @@ hnd1pe1.tun.y2e.org ver=2c  community=public
 ibr1pe1.tun.y2e.org ver=2c  community=public
 kix1sh1.tail5b1c5.ts.net ver=2c  community=public
 kix1sh2.tail5b1c5.ts.net ver=2c  community=public
+hnd1con2.tail5b1c5.ts.net ver=2c  community=public
+nrt1pow1.tun.y2e.org ver=2c  community=public
