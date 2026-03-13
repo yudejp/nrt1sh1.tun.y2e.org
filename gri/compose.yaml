@@ -15,7 +15,7 @@ services:
       - ./tra:/usr/local/gri/tra
       - ./gra:/usr/local/gri/gra
     extra_hosts:
-      - "ibr1gw1.ibr1.yude.jp:100.93.170.11"
+      - "nrt1gw1.tun.y2e.org:192.168.100.1"
       - "router1.pepepper.net:100.93.170.11"
       - "router2.pepepper.net:100.93.170.11"
       - "gateway.local.kusaremkn.com:100.109.169.61"
