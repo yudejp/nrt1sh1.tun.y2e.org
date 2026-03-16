@@ -6,9 +6,7 @@ services:
     restart: always
     environment:
       - TZ=Asia/Tokyo
-    ports:
-      - "9292:9292"
-      - "9293:9293"
+    network_mode: host
     user: root
     volumes:
       - ./gritab:/usr/local/gri/gritab:ro
@@ -46,4 +44,5 @@ services:
     image: cloudflare/cloudflared:latest
     user: root
     restart: always
+    network_mode: host
     command: tunnel --no-autoupdate run --token $CLOUDFLARED_TOKEN
