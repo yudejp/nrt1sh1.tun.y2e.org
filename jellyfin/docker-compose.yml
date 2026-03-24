@@ -6,10 +6,7 @@ services:
     volumes:
       - ./config:/config
       - cache:/cache
-      - /mnt/store1/dtv:/media-dtv
-      - /mnt/store3/video/yt_dl:/media-video-yt_dl
-      - /mnt/store3/video/yt_limited:/media-video-yt_limited
-      - /mnt/store3/music:/media-music
+      - /mnt/store4/dtv:/media-dtv
       - /mnt/prod/recorded:/media-recorded
     restart: always
 
