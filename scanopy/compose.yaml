@@ -1,0 +1,72 @@
+name: scanopy
+
+services:
+  daemon:
+    image: ghcr.io/scanopy/scanopy/daemon:latest
+    container_name: nrt1scd1
+    network_mode: host
+    privileged: true
+    restart: always
+    environment:
+      - SCANOPY_SERVER_URL=http://127.0.0.1:60072
+      - SCANOPY_NETWORK_ID=31454d38-30fc-46fe-9043-7c8bd09fe7b7
+      - SCANOPY_DAEMON_API_KEY=scp_d_nZonNjOnKQDQSlJZSPcd5qvNBVYBWY0s
+      - SCANOPY_USER_ID=8a693c72-8413-4225-b023-ebac841d367a
+      - SCANOPY_NAME=nrt1scd1
+      - SCANOPY_MODE=daemon_poll
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:60073/api/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    volumes:
+      - ./nrt1scd1:/root/.config/daemon
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: scanopy
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    volumes:
+      - ./db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+    networks:
+      - scanopy
+
+  server:
+    image: ghcr.io/scanopy/scanopy/server:latest
+    ports:
+      - "60072:60072"
+    environment:
+      SCANOPY_LOG_LEVEL: ${SCANOPY_LOG_LEVEL:-info}
+      SCANOPY_DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/scanopy
+      SCANOPY_WEB_EXTERNAL_PATH: /app/static
+      SCANOPY_PUBLIC_URL: ${SCANOPY_PUBLIC_URL:-http://localhost:60072}
+      SCANOPY_INTEGRATED_DAEMON_URL: http://host.docker.internal:60073
+    volumes:
+      - ./data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      daemon:
+        condition: service_started
+    restart: always
+    networks:
+      - scanopy
+
+networks:
+  scanopy:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.31.0.0/16
+          gateway: 172.31.0.1
