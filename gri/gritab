@@ -11,7 +11,6 @@ ttj1sh1.tail5b1c5.ts.net ver=2c  community=public
 nrt1wbr1.tun.y2e.org ver=2c  community=public
 nrt1wat1.tun.y2e.org ver=2c  community=public
 router1.pepepper.net ver=2c  community=public   port=11613
-router2.pepepper.net ver=2c  community=public   port=11614
 nrt1tsh1.tun.y2e.org ver=2c  community=public
 nrt1csh1.tun.y2e.org ver=2c  community=public
 ttj1csh1.tun.y2e.org ver=2c  community=public
@@ -25,7 +24,6 @@ hnd1con1.tail5b1c5.ts.net ver=2c  community=public
 izo1sh1.tail5b1c5.ts.net ver=2c  community=public
 nrt1kwo1.tail5b1c5.ts.net ver=2c  community=public
 berry.tun.y2e.org ver=2c  community=public
-mf720c.pepepper.net ver=2c  community=public   port=11611
 nrt1kwo2.tail5b1c5.ts.net ver=2c  community=public
 nrt1kwo3.tail5b1c5.ts.net ver=2c  community=public
 beer.tail5b1c5.ts.net ver=2c  community=public
@@ -56,3 +54,4 @@ ttj1pbk1.tail5b1c5.ts.net ver=2c  community=public
 hnd1pbk1.tail5b1c5.ts.net ver=2c  community=public
 hnd2gw1.tun.y2e.org ver=2c  community=public
 izo1gw1.tun.y2e.org ver=2c  community=public
+nt51.tun.y2e.org ver=2c  community=public
