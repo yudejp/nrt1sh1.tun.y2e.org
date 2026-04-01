@@ -1,7 +1,0 @@
-[general]
-    location = "NRT (Chiba, Japan)"
-    connection = "ARTERIA Networks Corporation (VECTANT)"
-[http]
-    destinations = [
-        "https://www.google.co.jp",
-    ]
