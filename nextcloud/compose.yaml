@@ -1,9 +1,9 @@
 services:
   db:
-    image: postgres:13.5-alpine
+    image: postgres:18-trixie
     restart: always
     volumes:
-      - /mnt/store3/nc.yude.jp/data/db:/var/lib/postgresql/data
+      - /mnt/store3/nc.yude.jp/data/db:/var/lib/postgresql
     env_file:
       - db.env
 
@@ -12,7 +12,7 @@ services:
     restart: always
 
   app:
-    image: nextcloud:30.0.0-fpm
+    image: nextcloud:33-fpm
     restart: always
     ports:
       - "9000:80"
@@ -20,6 +20,7 @@ services:
       - /mnt/store3/nc.yude.jp/data/html:/var/www/html
       - /mnt/store1:/storage/store1
       - /mnt/store3:/storage/store3
+      - /mnt/store4:/storage/store4
     environment:
       - POSTGRES_HOST=db
       - REDIS_HOST=redis
@@ -60,7 +61,7 @@ services:
       - app
 
   cron:
-    image: nextcloud:30.0.0-apache
+    image: nextcloud:33-apache
     restart: always
     volumes:
       - /mnt/store3/nc.yude.jp/data/html:/var/www/html
