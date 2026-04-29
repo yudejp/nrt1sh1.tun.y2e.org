@@ -9,6 +9,8 @@ services:
       - /mnt/store4/dtv:/media-dtv
       - /mnt/prod/recorded:/media-recorded
     restart: always
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128
 
 volumes:
   cache:
