@@ -4,6 +4,15 @@ services:
     image: ghcr.io/yudejp/gri:master
     container_name: gri
     restart: always
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          ruby -rnet/http -e 'response = Net::HTTP.get_response(URI("http://127.0.0.1:9292/")); exit(response.code == "200" ? 0 : 1)' || kill 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     environment:
       - TZ=Asia/Tokyo
     network_mode: host
