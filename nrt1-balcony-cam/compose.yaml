@@ -4,6 +4,7 @@ services:
     devices:
       - /dev/video0:/dev/video0
     command: ./ustreamer --device=/dev/video0 --host=0.0.0.0 --rotate 180 --resolution 704x1280 --port=8080 --format MJPEG
+    restart: always
     user: root
   cloudflared:
     image: cloudflare/cloudflared:latest
