@@ -1,0 +1,178 @@
+--- src/rend-posix.c.orig
++++ src/rend-posix.c
+@@ -20,660 +20,27 @@
+ * under the License.
+  */
+ 
+-/*
+-  File:       responder.c
+-
+-  Contains:   Code to implement an mDNSR responder on the Posix platform.
+-
+-  Written by: Quinn
+-
+-  Copyright:  Copyright (c) 2002 by Apple Computer, Inc., All Rights Reserved.
+-
+-  Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple Computer, Inc.
+-  ("Apple") in consideration of your paying to follow the following terms, and your
+-  use, installation, modification or redistribution of this Apple software (the "Apple Software"), to
+-  use, reproduce, modify and redistribute the Apple Software, with or without
+-  modifications, in source and/or binary forms; provided that if you redistribute
+-  the Apple Software in its entirety and without modifications, you must retain
+-  this notice and the following text and disclaimers in all such redistributions of
+-  the Apple Software.  Neither the name, trademarks, service marks or logos of
+-  Apple Computer, Inc. may be used to endorse or promote products derived from
+-  the Apple Software without specific prior written permission from Apple.  Except
+-  as expressly stated in this notice, no other rights or licenses, express or implied,
+-  are granted by Apple herein, including but not limited to any patent rights
+-  that may be infringed by your derivative works or by other works in which the Apple
+-  Software may be incorporated.
+-
+-  The Apple Software is provided by Apple on an "AS IS" basis.  APPLE MAKES NO
+-  WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION THE IMPLIED WARRANTIES
+-  OF NON-INFRINGEMENT, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE,
+-  REGARDING THE APPLE SOFTWARE OR ITS USE AND OPERATION ALONE OR IN COMBINATION
+-  WITH YOUR PRODUCTS.
+-
+-  INN EVENT SHALL APPLE BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL OR CONSEQUENTIAL
+-  DAMAGES (INCLUDING, WITHOUT LIMITATION, PROCUREMENT OR SUBSTITUTE OF PRODICTS OR
+-  SERVICES FOR LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+-  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, TORT OR NEGLIGENCE
+or
+-  OTHERWISE) ASING OUT OF THE USE OF THIS SOFTWARE EVEN IF APPLE HAS BEEN
+-  ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+-
+-  Change History (most recent first):
+-
+- $Log$
+- Revision 1.23  2005/01/07 06:57:49  rpedde
+- fix minor errno problem
+-
+- Revision 1.22  2004/12/09 05:05:54  rpedde
+- Logging fixes
+-
+- Revision 1.21  2004/11/30 04:17:32  rpedde
+- use pascal packed string to avoid invalid rdata error
+-
+-  Revision 1.20  2004/11/30 04:04:17  rpedde
+-  database id txt record to store settings
+-
+-  Revision 1.19  2004/11/13 07:14:26  rpedde
+-  modularize debugging statements
+-
+-  Revision 1.18  2004/04/19 06:19:46  rpedde
+-  Starting to fix signal stuff
+-
+-  Revision 1.17  2004/03/29 19:44:58  rpedde
+-  Move mdns stuff out of mdns subdir to help compile on older automakes
+-
+-  Revision 1.16  2004/03/08 19:21:03  rpedde
+-  start of background scanning
+-
+-  Revision 1.15  2004/03/02 01:35:31  rpedde
+-  fix domain
+-
+-  Revision 1.14  2004/03/02 00:03:37  rpedde
+-  Merge new rendevous code
+-
+-  Revision 1.13  2004/02/25 16:13:37  rpedde
+-  Fix logging
+-
+-  Revision 1.12  2004/02/09 18:33:59  rpedde
+-  More -Wall cleanups
+-
+-  Revision 1.11  2004/01/20 04:41:20  rpedde
+-  Pretty up
+-
+-  Revision 1.10  2004/01/20 04:41:20  rpedde
+-  merge new-rend-branch
+-
+-  Revision 1.9.2.1  2004/01/16 20:51:01  rpedde
+-  Convert rend-posix to message-based system
+-
+-  Revision 1.9  2004/01/04 05:02:23  rpedde
+-  fix segfault on dropping privs
+-
+-  Revision 1.8  2003/12/29 23:39:18  ron
+-  add priv dropping
+-
+-  Revision 1.7  2003/12/29 20:41:08  ron
+-  Make sure all files have GPL Notice
+-
+-  Revision 1.6  2003/11/26 06:12:53  ron
+-  Exclude from memory checks
+-
+-  Revision 1.5  2003/11/23 18:13:15  ron
+-  Exit rather than returning... shouldn't make a difference, but does.  ?
+-
+-  Revision 1.4  2003/11/20 21:58:22  ron
+-  More diag logging, move WS_PRIVATE into the WS_CONNINFO
+-
+-  Revision 1.3  2003/11/17 16:40:09  ron
+-  add support for named db
+-
+-  Revision 1.2  2003/11/14 04:54:55  ron
+-  Use port 53
+-
+-  Revision 1.1  2003/10/30 22:41:56  ron
+-  Initial checkin
+-
+-  Revision 1.3  2002/09/21 20:44:53  zaryzcki
+-  Added APSL info
+-
+-  Revision 1.2  2002/09/19 04:20:44  cheshire
+- Remove high-ascii characters that confuse some systems
+-
+-  Revision 1.1  2002/09/17 06:24:35  cheshire
+-  First checkin
+-
+-*/
+-
+-#include "mDNSClientAPI.h"
+-#include "mDNSPosix.h"
+-
+-#include <assert.h>
+-#include <stdio.h>
+-#include <stdlib.h>
+-#include <string.h>
+-#include <unistd.h>
+-#include <errno.h>
+-#include <signal.h>
+-#include <fcntl.h>
+-#include <pwd.h>
+-#include <sys/types.h>
+-
+-#define __IN_ERR__
+ #include "daapd.h"
+ #include "err.h"
+ #include "rend.h"
+ #include "rend-unix.h"
+ 
+-static mDNS mDNSStorage;
+-static mDNS_PlatformSupport PlatformStorage;
+-
+-
+-static volatile mDNSBool gStopNow;
+-
+-/* modified signal handling code - rep 21 Oct 2k3 */
+-
+-// o SIGINT  causes an orderly shutdown of the program.
+-// o SIGQUIT causes a somewhat orderly shutdown (direct but dangerous)
+-//
+-// There are fatal race conditions in our signal handling, but there's not much
+-// we can do about them while remaining within the Posix space.  Specifically,
+-// if a signal arrives after we test the globals its sets but before we call
+-// select, the signal will be dropped.  The user will have to send
+-// the signal again.  Unfortunately, Posix does not have a "sigselect" to atomically
+-// modify the signal mask and start a select.
+-
+-static void HandleSigInt(int sigraised)
+-{
+-    assert(sigraised == SIGINT);
+-
+-    DPRINT(E_INF,L_REND,"SIGINT\n");
+-    gStopNow = mDNStrue;
+-}
+-
+-static void HandleSigQuit(int sigraised)
+-{[-H€€€…ÍÍ•ÉĞ¡Í¥É…¥Í•€ôôM%EU%P¤ì4(´4(´€€€AI%9P¡}%9±1}I9°‰M%EU%Qq¸ˆ¤ì4(´4(´€€€µ9M}±½Í” ™µ9MMÑ½É…”¤ì4(´€€€•á¥Ğ À¤ì4(µô4(´4(´4(´4(´¼¨•ĞÉ¥½˜Á¥‘™¥±”¡…¹‘±¥¹œ€´É•À€´€ÈÄ=Ğ€É¬Ì€¨¼4(µÍÑ…Ñ¥Œ½¹ÍĞ¡…È-•™…Õ±ÑM•ÉÙ¥•QåÁ•mt€ô€‰}¡ÑÑÀ¹}ÑÀ¸ˆì4(µ•¹Õ´ì4(´€€€-•™…Õ±ÑA½ÉÑ9Õµ‰•È€ô€àÀ4(µôì4(´4(µÑåÁ•‘•˜ÍÑÉÕĞA½Í¥áM•ÉÙ¥”A½Í¥áM•ÉÙ¥”ì4(´4(µÍÑÉÕĞA½Í¥áM•ÉÙ¥”ì4(´€€€M•ÉÙ¥•I•½É‘M•Ğ½É•M•ÉØì4(´€€€A½Í¥áM•ÉÙ¥”€©¹•áĞì4(´€€€¥¹ĞÍ•ÉÙ¥•%ì4(µôì4(´4(µÍÑ…Ñ¥ŒA½Í¥áM•ÉÙ¥”€©M•ÉÙ¥•1¥ÍĞ€ô9U10ì4(´4(µÍÑ…Ñ¥ŒÙ½¥I•¥ÍÑÉ…Ñ¥½¹…±±‰…¬¡µ9L€©½¹ÍĞ´°M•ÉÙ¥•I•½É‘M•Ğ€©½¹ÍĞÑ¡¥ÍI•¥ÍÑÉ…Ñ¥½¸°µMÑ…ÑÕÌÍÑ…ÑÕÌ¤4(µíl´´(´€€€Íİ¥Ñ €¡ÍÑ…ÑÕÌ¤ì4(´4(´€€€…Í”µMÑ…ÑÕÍ}9½ÉÉ½Èè$4(´%AI%9P¡}	±1}I9°‰…±±‰…¬è9…µ”I•¥ÍÑ•É•‘q¸ˆ¤ì4(´%‰É•…¬ì4(´4(´€€€…Í”µMÑ…ÑÕÍ}9…µ•½¹™±¥Ğè4(´%AI%9P¡}]I8±1}I9°‰…±±‰…¬è9…µ”½¹™±¥Ñq¸ˆ¤ì4(´%ÍÑ…ÑÕÌ€ôµ9M}I•¹…µ•¹‘I•É•¥ÍÑ•ÉM•ÉÙ¥”¡´°Ñ¡¥ÍI•¥ÍÑÉ…Ñ¥½¸°µ9M9=U10¤ì4(´%…ÍÍ•ÉĞ¡ÍÑ…ÑÕÌ€ôôµMÑ…ÑÕÍ}9½ÉÉ½È¤ì4(´%‰É•…¬ì4(´4(´€€€…Í”µMÑ…ÑÕÍ}5•µÉ•”è$4(´%AI%9P¡}]I8±1}I9°‰…±±‰…¬è5•µ½ÉäÉ••q¸ˆ¤ì4(´€€€€€€€€4(´¥™‘•˜	U4(´%ì4(´$€€€A½Í¥áM•ÉÙ¥”€©ÕÉÍ½Èì4(´€€€€€€€€€€€€€€€€4(´$€€€ÕÉÍ½È€ôM•ÉÙ¥•1¥ÍĞì4(´$€€€İ¡¥±”€¡ÕÉÍ½È€„ô9U10¤ì4(´$%…ÍÍ•ÉĞ ™ÕÉÍ½È´ù½É•M•ÉØ€„ôÑ¡¥ÍI•¥ÍÑÉ…Ñ¥½¸¤ì4(´$%ÕÉÍ½È€ôÕÉÍ½È´ù¹•áĞì4(´$€€€ô4(´%ô4(´•¹‘¥˜4(´%™É•”¡Ñ¡¥ÍI•¥ÍÑÉ…Ñ¥½¸¤ì4(´%‰É•…¬ì4(´4(´€€€‘•™…Õ±Ğè$4(´%AI%9P¡}]I8±1}I9°‰…±±‰…¬èU¹­¹½İ¸MÑ…ÑÕÌ€•‘q¸ˆ±ÍÑ…ÑÕÌ¤ì€4(´%‰É•…¬ì4(´€€€ô4(µô4(´4(µÍÑ…Ñ¥Œ¥¹ĞM•ÉÙ¥•%€ô€Àì4(´4(µÍÑ…Ñ¥ŒµMÑ…ÑÕÌI•¥ÍÑ•É=¹•M•ÉÙ¥”¡½¹ÍĞ¡…È€¨€É¥¡Q•áÑ!½ÍÑ9…µ”°€4(´€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€½¹ÍĞ¡…È€¨€Í•ÉÙ¥•QåÁ”°€4(´$$€€$€€$€½¹ÍĞ¡…È€¨€Í•ÉÙ¥•½µ…¥¸°4(´€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€½¹ÍĞµ9MÔà€Ñ•áÑmt°4(´€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€µ9MÔÄØ€€€€€€Ñ•áÑ1•¸°4(´€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€±½¹œ€€€€€€€€€Á½ÉÑ9Õµ‰•È¤4(µì´´4(´€€€µMÑ…ÑÕÌ€€€€€€€€€€€€ÍÑ…ÑÕÌì4(´€€€A½Í¥áM•ÉÙ¥”€¨€€€€€Ñ¡¥ÍM•ÉØì4(´€€€µ9M=Á…ÅÕ”ÄØ€€€€€€€Á½ÉĞì4(´€€€‘½µ…¥¹±…‰•°€€€€€€€€¹…µ”ì4(´€€€‘½µ…¥¹¹…µ”€€€€€€€€€ÑåÁ”ì4(´€€€‘½µ…¥¹¹…µ”€€€€€€€€€‘½µ…¥¸ì4(´4(´€€€ÍÑ…ÑÕÌ€ôµMÑ…ÑÕÍ}9½ÉÉ½Èì4(´€€€Ñ¡¥ÍM•ÉØ€ô€¡A½Í¥áM•ÉÙ¥”€¨¤µ…±±½Œ¡Í¥é•½˜ ©Ñ¡¥ÍM•ÉØ¤¤ì4(´€€€¥˜€¡Ñ¡¥ÍM•ÉØ€ôô9U10¤ì4(´€€€€€€€ÍÑ…ÑÕÌ€ôµMÑ…ÑÕÍ}9½5•µ½ÉåÉÈì4(´€€€ô4(´€€€¥˜€¡ÍÑ…ÑÕÌ€ôôµMÑ…ÑÕÍ}9½ÉÉ½È¤ì4(´€€€€€€€5…­•½µ…¥¹1…‰•±É½µ1¥Ñ•É…±MÑÉ¥¹œ ™¹…µ”°€É¥¡Q•áÑ!½ÍÑ9…µ”¤ì4(´€€€€€€€5…­•½µ…¥¹9…µ•É½µ9MMÑÉ¥¹œ ™ÑåÁ”°Í•ÉÙ¥•QåÁ”¤ì4(´€€€€€€€5…­•½µ…¥¹9…µ•É½µ9MMÑÉ¥¹œ ™‘½µ…¥¸°Í•ÉÙ¥•½µ…¥¸¤ì4(´4(´€€€€€€€Á½ÉĞ¹‰lÁt€ô€¡Á½ÉÑ9Õµ‰•È€øø€à¤€˜€ÁàÁì4(´€€€€€€€Á½ÉĞ¹‰lÅt€ô€¡Á½ÉÑ9Õµ‰•È€øø€À¤€˜€ÁàÁìì4(´€€€€€€€ÍÑ…ÑÕÌ€ôµ9M}I•¥ÍÑ•ÉM•ÉÙ¥” ™µ9MMÑ½É…”°€™Ñ¡¥ÍM•ÉØ´ù½É•M•ÉØ°4(´$$$€€€€€€™¹…µ”°€™ÑåÁ”°€™‘½µ…¥¸°4(´$$$€€€€€9U10°4(´$$$€€€€€Á½ÉĞ°€4(´$$$€€€€€Ñ•áĞ°Ñ•áÑ1•¸°4(´$$$€€€€€9U10°€À°4(´$$$€€€€€µ9M%¹Ñ•É™…•}¹ä°4(´$$$€€€€€I•¥ÍÑÉ…Ñ¥½¹…±±‰…¬°Ñ¡¥ÍM•ÉØ¤ì4(´€€€ô4(´€€€¥˜€¡ÍÑ…ÑÕÌ€ôôµMÑ…ÑÕÍ}9½ÉÉ½È¤ì4(´€€€€€€€Ñ¡¥ÍM•ÉØ´ùÍ•ÉÙ¥•%€ôM•ÉÙ¥•%ì4(´€€€€€€€M•ÉÙ¥•%€¬ô€Äì4(´4(´€€€€€€€Ñ¡¥ÍM•ÉØ´ù¹•áĞ€ôM•ÉÙ¥•1¥ÍĞì4(´€€€€€€€M•ÉÙ¥•1¥ÍĞ€ôÑ¡¥ÍM•ÉØì4(´4(´%AI%9P¡}	±1}I9°4(´$$‰I•¥ÍÑ•É•Í•ÉÙ¥”€•°¹…µ”€œ•Ìœ°ÑåÁ”€œ•Ìœ°‘½µ…¥¸€œ•Ìœ°Á½ÉĞ€•±‘q¸ˆ°€4(´$%Ñ¡¥ÍM•ÉØ´ùÍ•ÉÙ¥•%°€4(´$%É¥¡Q•áÑ!½ÍÑ9…µ”°4(´$%Í•ÉÙ¥•QåÁ”°4(´$%Í•ÉÙ¥•½µ…¥¸°4(´$%Á½ÉÑ9Õµ‰•È¤ì4(´€€€ô•±Í”ì4(´€€€€€€€¥˜€¡Ñ¡¥ÍM•ÉØ€„ô9U10¤ì4(´€€€€€€€€€€€™É•”¡Ñ¡¥ÍM•ÉØ¤ì4(´€€€€€€€ô4(´€€€ô4(´€€€É•ÑÕÉ¸ÍÑ…ÑÕÌì4(µô4(´4(µÍÑ…Ñ¥ŒÙ½¥•É•¥ÍÑ•É=ÕÉM•ÉÙ¥•Ì¡Ù½¥¤4(µì´´4(´€€€A½Í¥áM•ÉÙ¥”€©Ñ¡¥ÍM•ÉØì4(´€€€¥¹ĞÑ¡¥ÍM•ÉÙ%ì4(´4(´€€€İ¡¥±”€¡M•ÉÙ¥•1¥ÍĞ€„ô9U10¤ì4(´€€€€€€€Ñ¡¥ÍM•ÉØ€ôM•ÉÙ¥•1¥ÍĞì4(´€€€€€€€M•ÉÙ¥•1¥ÍĞ€ôÑ¡¥ÍM•ÉØ´ù¹•áĞì4(´4(´€€€€€€€Ñ¡¥ÍM•ÉÙ%€ôÑ¡¥ÍM•ÉØ´ùÍ•ÉÙ¥•%ì4(´€€€€€€€€4(´€€€€€€€µ9M}•É•¥ÍÑ•ÉM•ÉÙ¥” ™µ9MMÑ½É…”°€™Ñ¡¥ÍM•ÉØ´ù½É•M•ÉØ¤ì4(´4(´%AI%9P¡}	±1}I9°‰•É•¥ÍÑ•É•Í•ÉÙ¥”€•‘q¸ˆ°4(´$%Ñ¡¥ÍM•ÉÙ%¤ì4(´€€€ô4(µô4(´4(´¼¨4(´€¨É•¹‘}…±±‰…¬4(´€¨4(´€¨Q¡¥Ì¥Ì‰½ÉÉ½İ•™É½´Ñ¡”=M`É•¹±¥•¹Ğ4(´€¨¼4(µÙ½¥É•¹‘}…±±‰…¬¡Ù½¥¤ì4(´€€€I9}5MMµÍœì4(´€€€¥¹ĞÉ•ÍÕ±Ğì4(´€€€¥¹Ğ•ÉÈì4(´4(´€€€AI%9P¡}	±1}I9°‰AÉ½•ÍÍ¥¹œÉ•¹‘•Ù½ÕÌµ•ÍÍ…•q¸ˆ¤ì4(´4(´€€€€¼¨¡•É”°İ”Ù”Í••¸Ñ¡”µ•ÍÍ…”°¹½Üİ”¡…Ù”Ñ¼ÁÉ½•ÍÌ¥Ğ€¨¼4(´4(´€€€¥˜ ¡É•ÍÕ±ĞõÉ•¹‘}É•…‘}µ•ÍÍ…” ™µÍœ¤¤€„ôÍ¥é•½˜¡µÍœ¤¤ì4(´%•ÉÈõ•ÉÉ¹¼ì4(´%AI%9P¡}Q0±1}I9°‰I•¹‘•é½ÕÌÍ½­•Ğ±½Í•€¡‘……ÀÍ•ÉÙ•ÈÉ…Í¡•ü¤‰½ÉÑ¥¹œ¹q¸ˆ¤ì4(´%MÑ½Á9½Üõµ9MÑÉÕ”ì4(´%É•ÑÕÉ¸ì4(´€€€ô4(´4(´€€€Íİ¥Ñ ¡µÍœ¹µ¤ì4(´€€€…Í”I9}5M}QeA}I%MQHè4(´%AI%9P¡}	±}I9°‰I•¥ÍÑ•É¥¹œ€•Ì¸•Ì€ •¥q¸ˆ±µÍœ¹¹…µ”±µÍœ¹ÑåÁ”±µÍœ¹Á½ÉĞ¤ì4(´%	•¥ÍÑ•É=¹•M•ÉÙ¥”¡µÍœ¹¹…µ”±µÍœ¹ÑåÁ”°‰±½…°¸ˆ°‰pÄÅÑáÑÙ•ÉÌôÅpÌÑ…Ñ…‰…Í”%õ‰•‘‘…ˆÅ•‘•…‘‰•„Üˆ°Ìä°4(´$$$€€µÍœ¹Á½ÉĞ¤ì4(´%É•¹‘}Í•¹‘}É•ÍÁ½¹Í” À¤ì€¼¨ÍÕ•ÍÌ€¨¼4(´%‰É•…¬ì4(´€€€…Í”I9}5M}QeA}U9I%MQHè4(´%É•¹‘}Í•¹‘}É•ÍÁ½¹Í” Ä¤ì€¼¨•ÉÉ½È€¨¼44%‰É•…¬ì4(´€€€…Í”I9}5M}QeA}MQ=@è4(´%AI%9P¡}%9±1}I9°‰MÑ½ÁÁ¥¹œµ9Mq¸ˆ¤ì4(´%MÑ½Á9½Ü€ôµ9MÑÉÕ”ì4(´%É•¹‘}Í•¹‘}É•ÍÁ½¹Í” À¤ì4(´%‰É•…¬ì4(´€€€…Í”A9}5M}QeA}MQQULè4(´%É•¹‘}Í•¹‘}É•ÍÁ½¹Í” Ä¤ì4(´%‰É•…¬ì4(´€€€‘•™…Õ±Ğè4(´%‰É•…¬ì44€€€ô4(µô4(´4(´4(´4(µ¥¹ĞÉ•¹‘}ÁÉ¥Ù…Ñ•}¥¹¥Ğ¡¡…È€©ÕÍ•È¤ì4(´€€€µMÑ…ÑÕÌÍÑ…ÑÕÌì4(´€€€µ9M	½½°É•ÍÕ±Ğì4(´4(´€€€ÍÑ…ÑÕÌ€ôµ9M}%¹¥Ğ ™µ9MMÑ½É…”°€™A±…Ñ™½ÉµMÑ½É…”°4(´$$$€€€€€€µ9M}%¹¥Ñ}9½…¡”°µ9M}%¹¥Ñ}i•É½…¡•M¥é”°4(´$$$€€€€€€µ9M}%¹¥Ñ}‘Ù•ÉÑ¥Í•1½…±‘‘É•ÍÍ•Ì°4(´$$$€€€€€€µ9M}%¹¥Ñ}9½%¹¥Ñ…±±‰…¬°µ9M}%¹¥Ñ}9½%¹¥Ñ…±±‰…­½¹Ñ•áĞ¤ì4(´4(´€€€¥˜€¡ÍÑ…ÑÕÌ€„ôµMÑ…ÑÕÍ}9½ÉÉ½È¤ì4(´%AI%9P¡}Q0±1}I9°‰µ9LÉÉ½È€•‘q¸ˆ±ÍÑ…ÑÕÌ¤ì4(´%É•ÑÕÉ¸ ´Ä¤ì4(´€€€ô4(´4(´€€€¥˜¡‘É½Á}ÁÉ¥ÙÌ¡ÕÍ•È¤¤4(´%É•ÑÕÉ¸€´Äì4(´4(´€€€Í¥¹…°¡M%%9P°€!…¹‘±•M¥%¹Ğ¤ì4(´€€€Í¥¹…°¡M%EU%P°!…¹‘±•M¥EÕ¥Ğ¤ì4(´€€€Í¥¹…°¡M%!U@°€M%}%8¤ì4(´4(´€€€İ¡¥±”€ …MÑ½Á9½Ü¤ì4(´%¥¹Ğ¹™‘Ì€ô€Äì4(´%‘}Í•ĞÉ•…‘™‘Ìì4(´%ÍÑÉÕĞÑ¥µ•Ù…°Ñ¥µ•½ÕĞì4(´%¥¹ĞÉ•ÍÕ±Ğì4(´4(´%}iI< ™É•…‘™‘Ì¤ì4(´%}MP¡É•¹‘}Á¥Á•}Ñ½mI}M%t°™É•…‘™‘Ì¤ì4(´4(´%Ñ¥µ•½ÕĞ¹ÑÙ}Í•Œ€ô€ÁàÍì4(´%Ñ¥µ•½ÕĞ¹ÑÙ}ÕÍ•Œ€ô€Àì4(´4(´%µ9MA½Í¥á•ÑM•Ğ ™µ9MMÑ½É…”°€™¹™‘Ì°€™É•…‘™‘Ì°€™Ñ¥µ•½ÕĞ¤ì4(´4(´%AI%9P¡}	±}I9°‰Í•±•Ğ •°€•¸”ÀÙ¥q¸ˆ°¹™‘Ì°4(´$%Ñ¥µ•½ÕĞ¹ÑÙ}Í•Œ°Ñ¥µ•½ÕĞ¹ÑÙ}ÕÍ•Œ¤ì4(´4(´%É•ÍÕ±Ğ€ôÍ•±•Ğ¡¹™‘Ì°€™É•…‘™‘Ì°9U10°9U10°€™Ñ¥µ•½ÕĞ¤ì4(´4(´%¥˜€¡É•ÍÕ±Ğ€ğ€À¤ì4(´$€€€¥˜€¡•ÉÉ¹¼€„ô%9QH¤MÑ½Á9½Ü€ôµ9MÑÉÕ”ì4(´$€€€AI%9P¡}]I8±1}I9°‰Í•±•Ğ ¤É•ÑÕÉ¹•€••ÉÉ¹¼€•‘q¸ˆ°É•ÍÕ±Ğ°•ÉÉ¹¼¤ì4(´%ô•±Í”ì4(´$€€€µ9MA½Í¥áAÉ½•ÍÍM•Ğ ™µ9MMÑ½É…”°€™É•…‘™‘Ì¤ì4(´4(´$€€€¥˜¡}%MMP¡É•¹‘}Á¥Á•}Ñ½mI}M%t°™É•…‘™‘Ì¤¤ì4(´$%É•¹‘}…±±‰…¬ ¤ì4(´$€€€ô44´%ô4(´€€€ô4(´4(´€€€AI%9P¡}	±1}I9°‰á¥Ñ¥¹q¸ˆ¤ì4(´4(´€€€•É•¥ÍÑ•É=ÕÑM•ÉÙ¥•Ì ¤ì4(´€€€µ9M}±½Í” ™µ9MMÑ½É…”¤ì4(´4(´€€€¥˜€¡ÍÑ…ÑÕÌ€ôôµMÑ…ÑÕÍ}9½ÉÉ½È¤ì4(´€€€€€€€É•ÍÕ±Ğ€ô€Àì4(´€€€ô•±Í”ì4(´€€€€€€€É•ÍÕ±Ğ€ô€Èì4(´€€€ô4(´€€€AI%9P¡}	±}I9°€‰¥¹¥Í¡•İ¥Ñ ÍÑ…ÑÕÌ€•±°É•ÍÕ±Ğ€•‘q¸ˆ°4(´$€€€ÍÑ…ÑÕÌ°É•ÍÕ±Ğ¤ì4(´4(´€€€•á¥Ğ¡É•ÍÕ±Ğ¤ì4(µô4(­¥¹ĞÉ•¹‘}ÁÉ¥Ù…Ñ•}¥¹¥Ğ¡¡…È€©ÕÍ•È¤ì4(¬€€€I9}5MMµÍœì4(¬€€€AI%9P¡}1=±1}I9°‰µ9L‘¥Í…‰±•°ÕÍ¥¹œAåÑ¡½¸é•É½½¹™q¸ˆ¤ì4(¬€€€İ¡¥±”€ Ä¤ì4(¬€€€€€€€É•¹‘}É•…‘}µ•ÍÍ…” ™µÍœ¤ì4(¬€€€€€€€Íİ¥Ñ ¡µÍœ¹µ¤ì4(¬€€€€€€€…Í”I9}5M}QeA}I%MQHè4(¬€€€€€€€…Í”I9}5M}QeA}U9I%MQHè4(¬€€€€€€€…Í”I9}5M}QeA}MQQULè4(¬€€€€€€€€€€€É•¹‘}Í•¹‘}É•ÍÁ½¹Í” À¤ì4(¬€€€€€€€€€€€‰É•…¬ì4(¬€€€€€€€…Í”A9}5M}QeA}MQ=@è4(¬€€€€€€€€€€€É•¹‘}Í•¹‘}É•ÍÁ½¹Í” À¤ì4(¬€€€€€€€€€€€•á¥Ğ À¤ì4(¬€€€€€€€ô4(¬€€€ô4(­ô4(

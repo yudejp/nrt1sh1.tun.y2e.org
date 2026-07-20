@@ -1,0 +1,115 @@
+--- src/rend-avahi.c.orig
++++ src/rend-avahi.c
+@@ -47,6 +47,7 @@
+ static AvahiClient *mdns_client = NULL;
+ static AvahiEntryGroup *mdns_group = NULL;
+ static AvahiSimplePoll *simple_poll = NULL;
++static char *mdns_name = NULL;
+ 
+ typedef struct tag_rend_avahi_group_entry {
+     char *name;
+@@ -93,8 +94,10 @@
+     while((ret = avahi_simple_poll_iterate(simple_poll,-1)) == 0);
+ 
+     if(ret < 0) {
+-        DPRINTF(E_WARN,L_REND,"Avahi poll thread quit iwth error: %s\n",
+-                avahi_strerror(avahi_client_errno(mdns_client)));
++        int avahi_err = AVAHI_ERR_DISCONNECTED;
++        if(mdns_client) avahi_err = avahi_client_errno(mdns_client);
++        DPRINTF(E_WARN,L_REND,"Avahi poll thread quit with error: %s\n",
++                avahi_strerror(avahi_err));
+     } else {
+         DPRINTF(E_DBG,L_REND,"Avahi poll thread quit\n");
+     }
+@@ -158,6 +161,7 @@
+ 
+ int rend_register(char *name, char *type, int port) {
+     DPRINTF(E_DBG,L_REND,"Adding %s/%s\n",name,type);
++    if(!mdns_name) mdns_name = strdup(name);
+     _rend_avahi_add_group_entry(name,type,port);
+     if(mdns_group) {
+         DPRINTF(E_DBG,L_MISC,"Resetting mdns group\n");
+@@ -182,6 +186,11 @@
+ 
+     DPRINTF(E_DBG,L_REND,"Creting service group\n");
+ 
++    if(!mdns_client) {
++        DPRINTF(E_WARN,L_REND,"No avahi client; skipping service create\n");
++        return 0;
++    }
++
+     if(!rend_avahi_entries.next) {
+         DPRINTF(E_DBG,L_REND,"No entries yet... skipping service create\n");
+         return 1;
+@@ -189,10 +198,9 @@
+ 
+     if (mdns_group == NULL) {
+         if (!(mdns_group = avahi_entry_group_new(mdns_client,
+-                                                 entry_group_callback,
+-                                                 NULL))) {
+-            DPRINTF(E_WARN, L_REND, "Could not create AvahiEntryGroup: %s\n",
+-                    avahi_strerror(avahi_client_errno(mdns_client)));
++                                                  entry_group_callback,
++                                                  NULL))) {
++            DPRINTF(E_WARN, L_REND, "Could not create AvahiEntryGroup\n");
+             return 0;
+         }
+     }
+@@ -230,7 +238,7 @@
+ 
+     if ((ret = avahi_entry_group_commit(mdns_group)) < 0) {
+         DPRINTF(E_WARN, L_REND, "Could not commit mdns services: %s\n",
+-                avahi_strerror(avahi_client_errno(mdns_client)));
++                avahi_strerror(ret));
+         return 0;
+     }
+ 
+@@ -245,19 +253,34 @@
+         if(!mdns_group)
+             _rend_avahi_create_services();
+         break;
+-    case AVAHI_CLIENT_S_COLLISION:
++    case AVAHI_CLIENT_S_COLLISION: {
+         DPRINTF(E_LOG,L_REND,"Client collision\n");
+-        if(mdns_group)
+-            avahi_entry_group_reset(mdns_group);
++        if(mdns_name) {
++            char *new_name = avahi_alternative_service_name(mdns_name);
++            DPRINTF(E_LOG,L_REND,"Renaming to %s\n", new_name);
++            free(mdns_name);
++            mdns_name = new_name;
++            _rend_avahi_lock();
++            REND_AVAHI_GROUP_ENTRY *entry = rend_avahi_entries.next;
++            while(entry) {
++                free(entry->name);
++                entry->name = strdup(new_name);
++                entry = entry->next;
++            }
++            _rend_avahi_unlock();
++        }
++        if(mdns_group) {
++            avahi_entry_group_free(mdns_group);
++            mdns_group = NULL;
++        }
+         break;
++    }
+     case AVAHI_CLIENT_FAILURE:
+         DPRINTF(E_LOG,L_REND,"Client failure\n");
+         avahi_simple_poll_quit(simple_poll);
+         break;
+     case AVAHI_CLIENT_S_REGISTERING:
+         DPRINTF(E_LOG,L_REND,"Client registering\n");
+-        if(mdns_group)
+-            avahi_entry_group_reset(mdns_group);
+         break;
+     case AVAHI_CLIENT_CONNECTING:
+         break;
+@@ -295,7 +318,7 @@
+     if (!(mdns_client = avahi_client_new(avahi_simple_poll_get(simple_poll),
+                                          0,client_callback,NULL,&error))) {
+         DPRINTF(E_WARN, L_REND, "avahi_client_new: Error in avahi: %s\n",
+-                avahi_strerror(avahi_client_errno(mdns_client)));
++                avahi_strerror(error));
+         avahi_simple_poll_free(simple_poll);
+         return -1;
+     }

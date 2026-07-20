@@ -1,0 +1,13 @@
+services:
+  mt-daapd:
+    build: .
+    restart: always
+    network_mode: host
+    security_opt:
+      - apparmor=unconfined
+    environment:
+      - TZ=Asia/Tokyo
+    volumes:
+      - /mnt/store3/music_m4a:/music:ro
+      - ./data:/var/cache/mt-daapd
+      - ./mt-daapd.conf:/etc/mt-daapd/mt-daapd.conf:ro

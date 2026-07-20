@@ -1,0 +1,70 @@
+--- src/rend-avahi.c.orig	2026-07-19 22:29:03.990230563 +0900
++++ src/rend-avahi.c	2026-07-19 22:50:43.671047479 +0900
+@@ -93,8 +93,8 @@
+     while((ret = avahi_simple_poll_iterate(simple_poll,-1)) == 0);
+ 
+     if(ret < 0) {
+-        DPRINTF(E_WARN,L_REND,"Avahi poll thread quit iwth error: %s\n",
+-                avahi_strerror(avahi_client_errno(mdns_client)));
++        DPRINTF(E_WARN,L_REND,"Avahi poll thread quit with error: %s\n",
++                avahi_strerror(mdns_client ? avahi_client_errno(mdns_client) : AVAHI_ERR_DISCONNECTED));
+     } else {
+         DPRINTF(E_DBG,L_REND,"Avahi poll thread quit\n");
+     }
+@@ -182,6 +182,11 @@
+ 
+     DPRINTF(E_DBG,L_REND,"Creting service group\n");
+ 
++    if(!mdns_client) {
++        DPRINTF(E_WARN,L_REND,"No avahi client; skipping service create\n");
++        return 0;
++    }
++
+     if(!rend_avahi_entries.next) {
+         DPRINTF(E_DBG,L_REND,"No entries yet... skipping service create\n");
+         return 1;
+@@ -189,10 +194,9 @@
+ 
+     if (mdns_group == NULL) {
+         if (!(mdns_group = avahi_entry_group_new(mdns_client,
+-                                                 entry_group_callback,
+-                                                 NULL))) {
+-            DPRINTF(E_WARN, L_REND, "Could not create AvahiEntryGroup: %s\n",
+-                    avahi_strerror(avahi_client_errno(mdns_client)));
++                                                  entry_group_callback,
++                                                  NULL))) {
++            DPRINTF(E_WARN, L_REND, "Could not create AvahiEntryGroup\n");
+             return 0;
+         }
+     }
+@@ -230,7 +234,7 @@
+ 
+     if ((ret = avahi_entry_group_commit(mdns_group)) < 0) {
+         DPRINTF(E_WARN, L_REND, "Could not commit mdns services: %s\n",
+-                avahi_strerror(avahi_client_errno(mdns_client)));
++                avahi_strerror(ret));
+         return 0;
+     }
+ 
+@@ -247,8 +251,11 @@
+         break;
+     case AVAHI_CLIENT_S_COLLISION:
+         DPRINTF(E_LOG,L_REND,"Client collision\n");
+-        if(mdns_group)
++        if(mdns_group) {
+             avahi_entry_group_reset(mdns_group);
++            avahi_entry_group_free(mdns_group);
++            mdns_group = NULL;
++        }
+         break;
+     case AVAHI_CLIENT_FAILURE:
+         DPRINTF(E_LOG,L_REND,"Client failure\n");
+@@ -256,8 +263,6 @@
+         break;
+     case AVAHI_CLIENT_S_REGISTERING:
+         DPRINTF(E_LOG,L_REND,"Client registering\n");
+-        if(mdns_group)
+-            avahi_entry_group_reset(mdns_group);
+         break;
+     case AVAHI_CLIENT_CONNECTING:
+         break;

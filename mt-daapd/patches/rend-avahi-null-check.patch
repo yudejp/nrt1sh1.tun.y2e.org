@@ -1,0 +1,11 @@
+--- src/rend-avahi.c	2026-07-19 22:19:14.775663234 +0900
++++ src/rend-avahi.c	2026-07-19 22:19:14.776471824 +0900
+@@ -295,7 +295,7 @@
+     if (!(mdns_client = avahi_client_new(avahi_simple_poll_get(simple_poll),
+                                          0,client_callback,NULL,&error))) {
+         DPRINTF(E_WARN, L_REND, "avahi_client_new: Error in avahi: %s\n",
+-                avahi_strerror(avahi_client_errno(mdns_client)));
++                avahi_strerror(error));
+         avahi_simple_poll_free(simple_poll);
+         return -1;
+     }
