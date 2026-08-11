@@ -1,0 +1,9 @@
+#!ipxe
+# Custom autoexec.ipxe - auto-boot proxmox
+kernel http://192.168.100.2:8080/boot/proxmox-ve_9.2-1/vmlinuz initrd=initrd boot=live priority=critical fetch=http://192.168.100.2:8080/isos/proxmox-ve_9.2-1.iso
+initrd http://192.168.100.2:8080/boot/proxmox-ve_9.2-1/initrd
+boot || goto failed
+:failed
+echo Boot failed, rebooting in 5 seconds...
+sleep 5
+reboot

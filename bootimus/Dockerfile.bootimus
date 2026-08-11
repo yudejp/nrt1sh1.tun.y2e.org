@@ -1,0 +1,10 @@
+FROM coredns/coredns:1.12.2 AS coredns
+
+FROM garybowers/bootimus:v0.1.74
+
+COPY --from=coredns /coredns /usr/local/bin/coredns
+COPY coredns/Corefile /etc/coredns/Corefile
+COPY --chmod=755 bootimus-entrypoint.sh /usr/local/bin/bootimus-entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/bootimus-entrypoint.sh"]
+CMD ["serve"]

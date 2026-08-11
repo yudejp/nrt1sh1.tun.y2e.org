@@ -1,0 +1,9 @@
+.:53 {
+    template IN AAAA {
+        rcode NOERROR
+    }
+
+    forward . 127.0.0.11
+    errors
+    log
+}

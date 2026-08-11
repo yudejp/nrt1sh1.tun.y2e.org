@@ -1,0 +1,32 @@
+services:
+  bootimus:
+    build:
+      context: .
+      dockerfile: Dockerfile.bootimus
+    restart: always
+    environment:
+      BOOTIMUS_PROXY_DHCP_ENABLED: "true"
+      BOOTIMUS_SERVER_ADDR: 192.168.100.2
+    sysctls:
+      net.ipv6.conf.all.disable_ipv6: "1"
+      net.ipv6.conf.default.disable_ipv6: "1"
+    ports:
+      - "67:67/udp"
+      - "4011:4011/udp"
+      - "69:69/udp"
+      - "8080:8080/tcp"
+      - "8081:8081/tcp"
+    networks:
+      lan:
+        ipv4_address: 192.168.100.2
+    volumes:
+      - ./data:/data
+networks:
+  lan:
+    driver: macvlan
+    driver_opts:
+      parent: eth0
+    ipam:
+      config:
+        - subnet: 192.168.100.0/24
+          gateway: 192.168.100.1
