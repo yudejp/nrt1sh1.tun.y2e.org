@@ -1,0 +1,8 @@
+---
+flow:
+  inputs:
+    - type: udp
+      decoder: sflow
+      listen: :6343
+      workers: 1
+      receive-buffer: 212992

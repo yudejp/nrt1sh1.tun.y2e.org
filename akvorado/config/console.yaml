@@ -1,0 +1,10 @@
+---
+http:
+  cache:
+    type: redis
+    server: redis:6379
+
+auth:
+  default-user:
+    login: akvorado
+    name: Akvorado Local User

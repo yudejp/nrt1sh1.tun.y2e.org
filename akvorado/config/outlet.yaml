@@ -1,0 +1,28 @@
+---
+geoip:
+  optional: true
+
+networks:
+  networks:
+    10.0.0.0/8:
+      name: private-v4-10
+      role: internal
+    172.16.0.0/12:
+      name: private-v4-172
+      role: internal
+    192.168.0.0/16:
+      name: private-v4-192
+      role: internal
+  network-sources: []
+
+metadata:
+  initial-delay: 0s
+  providers:
+    - type: snmp
+      credentials:
+        ::/0:
+          communities:
+            - public
+
+core:
+  default-sampling-rate: 2000
