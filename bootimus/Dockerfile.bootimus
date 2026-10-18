@@ -1,6 +1,6 @@
 FROM coredns/coredns:1.12.2 AS coredns
 
-FROM garybowers/bootimus:v0.1.74
+FROM garybowers/bootimus:0.1.76
 
 COPY --from=coredns /coredns /usr/local/bin/coredns
 COPY coredns/Corefile /etc/coredns/Corefile

@@ -21,6 +21,7 @@ services:
         ipv4_address: 192.168.100.2
     volumes:
       - ./data:/data
+      - ./data/isos:/mnt/store3/bootimus-isos
 networks:
   lan:
     driver: macvlan
