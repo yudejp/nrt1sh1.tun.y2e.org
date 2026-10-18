@@ -81,7 +81,7 @@ services:
       TZ: Asia/Tokyo
 
   konomitv:
-    image: ghcr.io/tsukumijima/konomitv:v0.14.1
+    image: ghcr.io/tsukumijima/konomitv:latest
     restart: always
     network_mode: host
     security_opt:
