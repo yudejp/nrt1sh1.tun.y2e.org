@@ -1,0 +1,5 @@
+/authorized_keys
+/www2-authorized_keys
+/host_ed25519
+/host_ed25519.pub
+/compose.yaml.backup-*
