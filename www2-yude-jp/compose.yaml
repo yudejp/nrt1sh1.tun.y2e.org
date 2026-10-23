@@ -1,6 +1,6 @@
 services:
   caddy:
-    image: caddy
+    image: caddy:latest
     restart: always
     volumes:
       - /mnt/store3/html:/usr/share/caddy
