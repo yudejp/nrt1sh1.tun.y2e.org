@@ -103,19 +103,6 @@ services:
       - '/dev/dri/:/dev/dri/'
     container_name: 'konomitv'
 
-  jellyfin:
-    image: jellyfin/jellyfin
-    container_name: jellyfin
-    security_opt:
-      - apparmor=unconfined
-    network_mode: "host"
-    devices:
-      - /dev/dri:/dev/dri
-    volumes:
-      - ./config:/config
-      - cache:/cache
-      - /mnt/prod/recorded:/recorded
-
   mysql:
     image: mariadb:10.5
     # image: mysql:8.0 # 囲み文字を使用する場合
