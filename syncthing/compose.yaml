@@ -5,6 +5,7 @@ services:
       - TZ=Asia/Tokyo
     volumes:
       - ./config:/config
-      - /mnt/store3/syncthing:/data
+      - /mnt/store3/music:/data/music:ro
+      - /mnt/store3/music/.stfolder:/data/music/.stfolder
     network_mode: host
     restart: always
